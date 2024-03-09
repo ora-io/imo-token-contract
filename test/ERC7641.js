@@ -9,14 +9,16 @@ describe("ERC7641", function () {
   let addrs;
   let erc7641Address;
 
-  const percentClaimable = 60;
+  const percentClaimable = 80;
   const supply = 1000000;
   const gas = ethers.parseEther("0.001");
+  const snapshotInterval = "0x9E340";
+  const snapshotIntervalBlocks = 648000;
 
   beforeEach(async function () {
     [addr0, addr1, addr2, ...addrs] = await ethers.getSigners();
     const ERC7641 = await ethers.getContractFactory("ERC7641");
-    erc7641 = await ERC7641.deploy("ERC7641", "ERCX", supply, percentClaimable);
+    erc7641 = await ERC7641.deploy("ERC7641", "ERCX", supply, percentClaimable, snapshotIntervalBlocks);
     await erc7641.waitForDeployment();
     erc7641Address = await erc7641.getAddress();
   });
@@ -47,12 +49,12 @@ describe("ERC7641", function () {
   });
 
   describe("Snapshot", function () {
-    it("Should not snapshot if 1000 blocks have not passed", async function () {
+    it("Should not snapshot if 648,000 blocks have not passed", async function () {
       await expect(erc7641.snapshot()).to.be.revertedWith("ERC7641: snapshot interval is too short");
     });
 
-    it("Should snapshot if > 1000 blocks have passed", async function () {
-      await network.provider.send("hardhat_mine", ["0x400"]);
+    it("Should snapshot if > 648,000 blocks have passed", async function () {
+      await network.provider.send("hardhat_mine", [snapshotInterval]);
       expect(await erc7641.snapshot()).to.emit(erc7641, "Snapshot");
     });
   });
@@ -76,7 +78,7 @@ describe("ERC7641", function () {
 
     it("Should snapshot and burn tokens", async function () {
       await addr0.sendTransaction({ to: erc7641Address, value: ethers.parseEther("1000") });
-      await network.provider.send("hardhat_mine", ["0x400"]);
+      await network.provider.send("hardhat_mine", [snapshotInterval]);
       await erc7641.snapshot();
       expect(await erc7641.redeemableOnBurn(10000)).to.equal(ethers.parseEther("1000")*BigInt(10000)*BigInt(100-percentClaimable)/BigInt(supply)/BigInt(100));
       const balanceBefore = await ethers.provider.getBalance(await ethers.provider.getSigner(0));
@@ -87,7 +89,7 @@ describe("ERC7641", function () {
 
     it("Should snapshot, deposit, and burn", async function () {
       await addr0.sendTransaction({ to: erc7641Address, value: ethers.parseEther("1000") });
-      await network.provider.send("hardhat_mine", ["0x400"]);
+      await network.provider.send("hardhat_mine", [snapshotInterval]);
       await erc7641.snapshot();
       await addr0.sendTransaction({ to: erc7641Address, value: ethers.parseEther("1000") });
       expect(await erc7641.redeemableOnBurn(10000)).to.equal(ethers.parseEther("2000")*BigInt(10000)*BigInt(100-percentClaimable)/BigInt(supply)/BigInt(100));
@@ -105,7 +107,7 @@ describe("ERC7641", function () {
 
     it("Should claim after snapshot", async function () {
       await addr0.sendTransaction({ to: erc7641Address, value: ethers.parseEther("1000") });
-      await network.provider.send("hardhat_mine", ["0x400"]);
+      await network.provider.send("hardhat_mine", [snapshotInterval]);
       await erc7641.snapshot();
       expect(await erc7641.claimableRevenue(addr0, 1)).to.equal(ethers.parseEther("1000")*BigInt(percentClaimable)/BigInt(100));
       const balanceBefore = await ethers.provider.getBalance(await ethers.provider.getSigner(0));
@@ -116,7 +118,7 @@ describe("ERC7641", function () {
 
     it("Should claim after snapshot and deposit", async function () {
       await addr0.sendTransaction({ to: erc7641Address, value: ethers.parseEther("1000") });
-      await network.provider.send("hardhat_mine", ["0x400"]);
+      await network.provider.send("hardhat_mine", [snapshotInterval]);
       await erc7641.snapshot();
       await addr0.sendTransaction({ to: erc7641Address, value: ethers.parseEther("1000") });
       expect(await erc7641.claimableRevenue(addr0, 1)).to.equal(ethers.parseEther("1000")*BigInt(percentClaimable)/BigInt(100));
@@ -129,7 +131,7 @@ describe("ERC7641", function () {
     it("Should claim correctly after snapshot with two holders", async function () {
       await erc7641.transfer(addr1.address, 100000);
       await addr0.sendTransaction({ to: erc7641Address, value: ethers.parseEther("1000") });
-      await network.provider.send("hardhat_mine", ["0x400"]);
+      await network.provider.send("hardhat_mine", [snapshotInterval]);
       await erc7641.snapshot();
       expect(await erc7641.claimableRevenue(addr0, 1)).to.equal(ethers.parseEther("1000")*BigInt(supply-100000)*BigInt(percentClaimable)/BigInt(100)/BigInt(supply));
       expect(await erc7641.claimableRevenue(addr1, 1)).to.equal(ethers.parseEther("1000")*BigInt(100000)*BigInt(percentClaimable)/BigInt(100)/BigInt(supply));
@@ -145,10 +147,10 @@ describe("ERC7641", function () {
 
     it("Should claim multiple snapshots correctly", async function () {
       await addr0.sendTransaction({ to: erc7641Address, value: ethers.parseEther("1000") });
-      await network.provider.send("hardhat_mine", ["0x400"]);
+      await network.provider.send("hardhat_mine", [snapshotInterval]);
       await erc7641.snapshot();
       await addr0.sendTransaction({ to: erc7641Address, value: ethers.parseEther("2000") });
-      await network.provider.send("hardhat_mine", ["0x400"]);
+      await network.provider.send("hardhat_mine", [snapshotInterval]);
       await erc7641.snapshot();
       expect(await erc7641.claimableRevenue(addr0, 1)).to.equal(ethers.parseEther("1000")*BigInt(percentClaimable)/BigInt(100));
       expect(await erc7641.claimableRevenue(addr0, 2)).to.equal(ethers.parseEther("2000")*BigInt(percentClaimable)/BigInt(100));
@@ -162,7 +164,7 @@ describe("ERC7641", function () {
   describe("Mixed operations", function () {
     it("deposit -> snapshot -> deposit -> burn -> deposit -> burn -> snapshot -> claim -> burn", async function () {
       await addr0.sendTransaction({ to: erc7641Address, value: ethers.parseEther("100") });
-      await network.provider.send("hardhat_mine", ["0x400"]);
+      await network.provider.send("hardhat_mine", [snapshotInterval]);
       await erc7641.snapshot();
       await addr0.sendTransaction({ to: erc7641Address, value: ethers.parseEther("100") });
       let redeemed = ethers.parseEther("200")*BigInt(10000)*BigInt(100-percentClaimable)/BigInt(supply)/BigInt(100);
@@ -172,7 +174,7 @@ describe("ERC7641", function () {
       redeemed += ethers.parseEther("100")*BigInt(10000)*BigInt(100-percentClaimable)/BigInt(supply-10000)/BigInt(100);
       expect(await erc7641.redeemableOnBurn(10000)).to.equal(redeemed);
       await erc7641.burn(10000);
-      await network.provider.send("hardhat_mine", ["0x400"]);
+      await network.provider.send("hardhat_mine", [snapshotInterval]);
       await erc7641.snapshot();
       expect(await erc7641.claimableRevenue(addr0, 2)).to.equal(ethers.parseEther("200")*BigInt(percentClaimable)/BigInt(100));
       const balanceBefore = await ethers.provider.getBalance(await ethers.provider.getSigner(0));

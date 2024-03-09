@@ -9,12 +9,17 @@ contract ERC7641 is ERC20Snapshot, IERC7641 {
     /**
      * @dev last snapshotted block
      */
-    uint256 private _lastSnapshotBlock;
+    uint256 public lastSnapshotBlock;
 
     /**
      * @dev percentage claimable
      */
     uint256 immutable public percentClaimable;
+
+    /**
+     * @dev snapshot interval
+     */
+    uint256 immutable public snapshotInterval;
 
     /**
      * @dev mapping from snapshot id to address to the amount of ETH claimable at the snapshot.
@@ -47,10 +52,11 @@ contract ERC7641 is ERC20Snapshot, IERC7641 {
      * @param symbol The symbol of the token
      * @param supply The total supply of the token
      */
-    constructor(string memory name, string memory symbol, uint256 supply, uint256 _percentClaimable) ERC20(name, symbol) {
+    constructor(string memory name, string memory symbol, uint256 supply, uint256 _percentClaimable, uint256 _snapshotInterval) ERC20(name, symbol) {
         require(_percentClaimable <= 100, "ERC7641: percentage claimable should be less than 100");
+        lastSnapshotBlock = block.number;
         percentClaimable = _percentClaimable;
-        _lastSnapshotBlock = block.number;
+        snapshotInterval = _snapshotInterval;
         _mint(msg.sender, supply);
     }
 
@@ -94,12 +100,12 @@ contract ERC7641 is ERC20Snapshot, IERC7641 {
     /**
      * @dev A snapshot function that also records the deposited ETH amount at the time of the snapshot.
      * @return The snapshot id
-     * @notice example requirement: only 1000 blocks after the last snapshot
+     * @notice 648000 blocks is approximately 3 months
      */
     function snapshot() public returns (uint256) {
-        require(block.number - _lastSnapshotBlock > 1000, "ERC7641: snapshot interval is too short");
+        require(block.number - lastSnapshotBlock > snapshotInterval, "ERC7641: snapshot interval is too short");
         uint256 snapshotId = _snapshot();
-        _lastSnapshotBlock = block.number;
+        lastSnapshotBlock = block.number;
         
         uint256 newRevenue = address(this).balance + _burned - _claimPool - _burnPool;
 
