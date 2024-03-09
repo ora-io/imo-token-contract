@@ -7,17 +7,20 @@
 const hre = require("hardhat");
 
 async function main() {
-    // const lock = await hre.ethers.deployContract("Lock", [unlockTime], {
-    //     value: lockedAmount,
-    // });
+    const token = await hre.ethers.deployContract("ERC7641", ["Subnet 6 Revshare Token", "SN6", 1000000, 80, 648000]);
 
-    // await lock.waitForDeployment();
+    await token.waitForDeployment();
 
-    // console.log(
-    //     `Lock with ${ethers.formatEther(
-    //         lockedAmount
-    //     )}ETH and unlock timestamp ${unlockTime} deployed to ${lock.target}`
-    // );
+    console.log(
+        `Token deployed to: ${await token.getAddress()} with the following parameters:
+        Name: ${await token.name()}
+        Symbol: ${await token.symbol()}
+        Total Supply: ${await token.totalSupply()}
+        Decimals: ${await token.decimals()}
+        Percent Claimable: ${await token.percentClaimable()}
+        Snapshot Interval: ${await token.snapshotInterval()}
+        `
+    );
 
     // TODO: Add deployment script here
 }
