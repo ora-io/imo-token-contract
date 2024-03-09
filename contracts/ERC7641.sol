@@ -142,4 +142,6 @@ contract ERC7641 is ERC20Snapshot, IERC7641 {
     }
 
     receive() external payable {}
+
+    // TODO: add a function for first deposit from IMO sale to go only into the burn pool
 }
