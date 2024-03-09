@@ -36,6 +36,19 @@ describe("ERC7641", function () {
       expect(await erc7641.totalSupply()).to.equal(supply);
     });
 
+    it("Should set the right last snapshot block", async function () {
+      const block = await ethers.provider.getBlockNumber();
+      expect(await erc7641.lastSnapshotBlock()).to.equal(block);
+    });
+
+    it("Should set the right percent claimable", async function () {
+      expect(await erc7641.percentClaimable()).to.equal(percentClaimable);
+    });
+
+    it("Should set the right snapshot interval", async function () {
+      expect(await erc7641.snapshotInterval()).to.equal(snapshotIntervalBlocks);
+    });
+
     it("Should assign the total supply to the owner", async function () {
       expect(await erc7641.balanceOf(await ethers.provider.getSigner(0))).to.equal(supply);
     });
