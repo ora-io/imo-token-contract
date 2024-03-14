@@ -22,19 +22,19 @@ contract ERC7641 is ERC20Snapshot, IERC7641 {
     uint256 immutable public snapshotInterval;
 
     /**
-     * @dev mapping from snapshot id to address to the amount of ETH claimable at the snapshot.
+     * @dev mapping from snapshot id to the amount of ETH claimable at the snapshot.
      */
     mapping (uint256 => uint256) private _claimableAtSnapshot;
 
     /**
-     * @dev mapping from snapshot id to a boolean indicating whether the address has claimed the revenue.
+     * @dev mapping from snapshot id to amount of ETH claimed at the snapshot.
      */
-    mapping (uint256 => mapping (address => bool)) private _claimedAtSnapshot;
+    mapping (uint256 => uint256) private _claimedAtSnapshot;
 
     /**
-     * @dev claim pool
+     * @dev mapping from snapshot id to a boolean indicating whether the address has claimed the revenue.
      */
-    uint256 private _claimPool;
+    mapping (uint256 => mapping (address => bool)) private _hasClaimedAtSnapshot;
 
     /**
      * @dev burn pool
@@ -53,7 +53,7 @@ contract ERC7641 is ERC20Snapshot, IERC7641 {
      * @param supply The total supply of the token
      */
     constructor(string memory name, string memory symbol, uint256 supply, uint256 _percentClaimable, uint256 _snapshotInterval) ERC20(name, symbol) {
-        require(_percentClaimable <= 100, "ERC7641: percentage claimable should be less than 100");
+        require(_percentClaimable <= 100, "percentage claimable should be less than 100");
         lastSnapshotBlock = block.number;
         percentClaimable = _percentClaimable;
         snapshotInterval = _snapshotInterval;
@@ -67,10 +67,12 @@ contract ERC7641 is ERC20Snapshot, IERC7641 {
      * @return The amount of revenue token claimable
      */
     function claimableRevenue(address account, uint256 snapshotId) public view returns (uint256) {
+        uint256 currentSnapshotId = _getCurrentSnapshotId();
+        require(currentSnapshotId - snapshotId < 3, "snapshot unclaimable");
         uint256 balance = balanceOfAt(account, snapshotId);
         uint256 totalSupply = totalSupplyAt(snapshotId);
         uint256 ethClaimable = _claimableAtSnapshot[snapshotId];
-        return _claimedAtSnapshot[snapshotId][account] ? 0 : balance * ethClaimable / totalSupply;
+        return _hasClaimedAtSnapshot[snapshotId][account] ? 0 : balance * ethClaimable / totalSupply;
     }
 
     /**
@@ -79,12 +81,12 @@ contract ERC7641 is ERC20Snapshot, IERC7641 {
      */
     function claim(uint256 snapshotId) public {
         uint256 claimableETH = claimableRevenue(msg.sender, snapshotId);
-        require(claimableETH > 0, "ERC7641: no claimable ETH");
+        require(claimableETH > 0, "no claimable ETH");
 
-        _claimedAtSnapshot[snapshotId][msg.sender] = true;
-        _claimPool -= claimableETH;
+        _hasClaimedAtSnapshot[snapshotId][msg.sender] = true;
+        _claimedAtSnapshot[snapshotId] += claimableETH;
         (bool success, ) = msg.sender.call{value: claimableETH}("");
-        require(success, "ERC7641: claim failed");
+        require(success, "claim failed");
     }
     
     /**
@@ -96,6 +98,17 @@ contract ERC7641 is ERC20Snapshot, IERC7641 {
             claim(snapshotIds[i]);
         }
     }
+
+    /**
+     * @dev A function to calculate claim pool from most recent three snapshots
+     * @param currentSnapshotId The current snapshot id
+     */
+    function _claimPool(uint256 currentSnapshotId) public view returns (uint256) {
+        if (currentSnapshotId > 2) return _claimableAtSnapshot[currentSnapshotId] + _claimableAtSnapshot[currentSnapshotId - 1] + _claimableAtSnapshot[currentSnapshotId - 2] - _claimedAtSnapshot[currentSnapshotId] - _claimedAtSnapshot[currentSnapshotId - 1] - _claimedAtSnapshot[currentSnapshotId - 2];
+        if (currentSnapshotId == 2) return _claimableAtSnapshot[2] + _claimableAtSnapshot[1] - _claimedAtSnapshot[2] - _claimedAtSnapshot[1];
+        if (currentSnapshotId == 1) return _claimableAtSnapshot[1] - _claimedAtSnapshot[1];
+        return 0;
+    }
     
     /**
      * @dev A snapshot function that also records the deposited ETH amount at the time of the snapshot.
@@ -103,15 +116,14 @@ contract ERC7641 is ERC20Snapshot, IERC7641 {
      * @notice 648000 blocks is approximately 3 months
      */
     function snapshot() public returns (uint256) {
-        require(block.number - lastSnapshotBlock > snapshotInterval, "ERC7641: snapshot interval is too short");
+        require(block.number - lastSnapshotBlock > snapshotInterval, "snapshot interval is too short");
         uint256 snapshotId = _snapshot();
         lastSnapshotBlock = block.number;
         
-        uint256 newRevenue = address(this).balance + _burned - _claimPool - _burnPool;
+        uint256 newRevenue = address(this).balance + _burned - _burnPool - _claimPool(snapshotId-1);
 
         uint256 claimableETH = newRevenue * percentClaimable / 100;
-        _claimableAtSnapshot[snapshotId] = claimableETH;
-        _claimPool += claimableETH;
+        _claimableAtSnapshot[snapshotId] = snapshotId < 3 ? claimableETH : claimableETH + _claimableAtSnapshot[snapshotId-3] - _claimedAtSnapshot[snapshotId-3];
         _burnPool += newRevenue - claimableETH - _burned;
         _burned = 0;
 
@@ -125,7 +137,8 @@ contract ERC7641 is ERC20Snapshot, IERC7641 {
      */
     function redeemableOnBurn(uint256 amount) public view returns (uint256) {
         uint256 totalSupply = totalSupply();
-        uint256 newRevenue = address(this).balance + _burned - _claimPool - _burnPool;
+        uint256 currentSnapshotId = _getCurrentSnapshotId();
+        uint256 newRevenue = address(this).balance + _burned - _burnPool - _claimPool(currentSnapshotId);
         uint256 burnableFromNewRevenue = amount * (newRevenue * (100 - percentClaimable) - _burned * 100) / 100 / totalSupply;
         uint256 burnableFromPool = amount * _burnPool / totalSupply;
         return burnableFromNewRevenue + burnableFromPool;
@@ -137,17 +150,16 @@ contract ERC7641 is ERC20Snapshot, IERC7641 {
      */
     function burn(uint256 amount) public {
         uint256 totalSupply = totalSupply();
-        uint256 newRevenue = address(this).balance + _burned - _claimPool - _burnPool;
+        uint256 currentSnapshotId = _getCurrentSnapshotId();
+        uint256 newRevenue = address(this).balance + _burned - _burnPool - _claimPool(currentSnapshotId);
         uint256 burnableFromNewRevenue = amount * (newRevenue * (100 - percentClaimable) - _burned * 100)  / 100 / totalSupply;
         uint256 burnableFromPool = amount * _burnPool / totalSupply;
         _burnPool -= burnableFromPool;
         _burned += burnableFromNewRevenue;
         _burn(msg.sender, amount);
         (bool success, ) = msg.sender.call{value: burnableFromNewRevenue + burnableFromPool}("");
-        require(success, "ERC7641: burn failed");
+        require(success, "burn failed");
     }
 
     receive() external payable {}
-
-    // TODO: add a function for first deposit from IMO sale to go only into the burn pool
 }
