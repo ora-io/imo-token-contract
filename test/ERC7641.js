@@ -10,7 +10,7 @@ describe("ERC7641", function () {
   let erc7641Address;
 
   const percentClaimable = 80;
-  const supply = 1000000;
+  const supply = 1000000000;
   const gas = ethers.parseEther("0.001");
   const snapshotInterval = "0x9E340";
   const snapshotIntervalBlocks = 648000;

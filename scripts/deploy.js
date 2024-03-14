@@ -7,7 +7,7 @@
 const hre = require("hardhat");
 
 async function main() {
-    const token = await hre.ethers.deployContract("ERC7641", ["Subnet 6 Revshare Token", "SN6", 1000000, 80, 648000]);
+    const token = await hre.ethers.deployContract("ERC7641", ["Subnet 6 RevShare Token", "SN6", 1000000000, 80, 648000]);
 
     await token.waitForDeployment();
 
@@ -21,8 +21,6 @@ async function main() {
         Snapshot Interval: ${await token.snapshotInterval()}
         `
     );
-
-    // TODO: Add deployment script here
 }
 
 // We recommend this pattern to be able to use async/await everywhere
