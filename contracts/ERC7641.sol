@@ -2,9 +2,10 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Snapshot.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "./IERC7641.sol";
 
-contract ERC7641 is ERC20Snapshot, IERC7641 {
+contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
     /**
      * @dev last snapshotted block
      */
@@ -51,7 +52,7 @@ contract ERC7641 is ERC20Snapshot, IERC7641 {
      * @param symbol The symbol of the token
      * @param supply The total supply of the token
      */
-    constructor(string memory name, string memory symbol, uint256 supply, uint256 _percentClaimable, uint256 _snapshotInterval) ERC20(name, symbol) {
+    constructor(string memory name, string memory symbol, uint256 supply, uint256 _percentClaimable, uint256 _snapshotInterval) ERC20(name, symbol) ERC20Permit(name) {
         require(_percentClaimable <= 100, "percentage claimable should be less than 100");
         lastSnapshotBlock = block.number;
         percentClaimable = _percentClaimable;
@@ -161,4 +162,9 @@ contract ERC7641 is ERC20Snapshot, IERC7641 {
     }
 
     receive() external payable {}
+
+    //override _beforeTokenTransfer to update the snapshot
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override(ERC20, ERC20Snapshot) {
+        ERC20Snapshot._beforeTokenTransfer(from, to, amount);
+    }
 }
