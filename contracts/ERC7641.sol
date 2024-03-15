@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Snapshot.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./IERC7641.sol";
 
 contract ERC7641 is ERC20Snapshot, IERC7641 {
