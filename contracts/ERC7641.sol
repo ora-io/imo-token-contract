@@ -72,7 +72,7 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
         uint256 balance = balanceOfAt(account, snapshotId);
         uint256 totalSupply = totalSupplyAt(snapshotId);
         uint256 ethClaimable = _claimableAtSnapshot[snapshotId];
-        return _hasClaimedAtSnapshot[snapshotId][account] ? 0 : balance * ethClaimable / totalSupply;
+        return balance * ethClaimable / totalSupply;
     }
 
     /**
@@ -83,7 +83,6 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
         uint256 claimableETH = claimableRevenue(msg.sender, snapshotId);
         require(claimableETH > 0, "no claimable ETH");
 
-        _hasClaimedAtSnapshot[snapshotId][msg.sender] = true;
         _claimedAtSnapshot[snapshotId] += claimableETH;
         (bool success, ) = msg.sender.call{value: claimableETH}("");
         require(success, "claim failed");
@@ -152,7 +151,7 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
         uint256 totalSupply = totalSupply();
         uint256 currentSnapshotId = _getCurrentSnapshotId();
         uint256 newRevenue = address(this).balance + _burned - _burnPool - _claimPool(currentSnapshotId);
-        uint256 burnableFromNewRevenue = amount * (newRevenue * (100 - percentClaimable) - _burned * 100)  / 100 / totalSupply;
+        uint256 burnableFromNewRevenue = amount * ((newRevenue * (100 - percentClaimable))  / 100  - _burned) / totalSupply;
         uint256 burnableFromPool = amount * _burnPool / totalSupply;
         _burnPool -= burnableFromPool;
         _burned += burnableFromNewRevenue;
