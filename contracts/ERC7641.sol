@@ -93,7 +93,7 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
      * @dev A function to claim by a list of snapshot ids.
      * @param snapshotIds The list of snapshot ids
      */
-    function claimBatch(uint256[] memory snapshotIds) public {
+    function claimBatch(uint256[] memory snapshotIds) external {
         for (uint256 i = 0; i < snapshotIds.length; i++) {
             claim(snapshotIds[i]);
         }
@@ -115,7 +115,7 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
      * @return The snapshot id
      * @notice 648000 blocks is approximately 3 months
      */
-    function snapshot() public returns (uint256) {
+    function snapshot() external returns (uint256) {
         require(block.number - lastSnapshotBlock > snapshotInterval, "snapshot interval is too short");
         uint256 snapshotId = _snapshot();
         lastSnapshotBlock = block.number;
@@ -148,7 +148,7 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
      * @param amount The amount of token to burn
      * @return The amount of revenue ETH redeemable
      */
-    function redeemableOnBurn(uint256 amount) public view returns (uint256) {
+    function redeemableOnBurn(uint256 amount) external view returns (uint256) {
         (uint256 burnableFromNewRevenue, uint256 burnableFromPool) = _redeemableOnBurn(amount);
         return burnableFromNewRevenue + burnableFromPool;
     }
@@ -157,7 +157,7 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
      * @dev A function to burn tokens and redeem the corresponding amount of revenue token
      * @param amount The amount of token to burn
      */
-    function burn(uint256 amount) public {
+    function burn(uint256 amount) external {
         (uint256 burnableFromNewRevenue, uint256 burnableFromPool) = _redeemableOnBurn(amount);
         _burnPool -= burnableFromPool;
         _burned += burnableFromNewRevenue;
