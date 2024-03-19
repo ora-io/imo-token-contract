@@ -72,7 +72,7 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
         uint256 balance = balanceOfAt(account, snapshotId);
         uint256 totalSupply = totalSupplyAt(snapshotId);
         uint256 ethClaimable = _claimableAtSnapshot[snapshotId];
-        return balance * ethClaimable / totalSupply;
+        return _hasClaimedAtSnapshot[snapshotId][account] ? 0 : balance * ethClaimable / totalSupply;
     }
 
     /**
@@ -83,6 +83,7 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
         uint256 claimableETH = claimableRevenue(msg.sender, snapshotId);
         require(claimableETH > 0, "no claimable ETH");
 
+        _hasClaimedAtSnapshot[snapshotId][msg.sender] = true;
         _claimedAtSnapshot[snapshotId] += claimableETH;
         (bool success, ) = msg.sender.call{value: claimableETH}("");
         require(success, "claim failed");

@@ -129,6 +129,15 @@ describe("ERC7641", function () {
       expect(balanceAfter-balanceBefore).to.greaterThan(ethers.parseEther("1000")*BigInt(percentClaimable)/BigInt(100)-gas);
     });
 
+    it("Should not re-claim on the same snapshot", async function () {
+      await addr0.sendTransaction({ to: erc7641Address, value: ethers.parseEther("1000") });
+      await network.provider.send("hardhat_mine", [snapshotInterval]);
+      await erc7641.snapshot();
+      expect(await erc7641.claimableRevenue(addr0, 1)).to.equal(ethers.parseEther("1000")*BigInt(percentClaimable)/BigInt(100));
+      await erc7641.claim(1);
+      await expect(erc7641.claim(1)).to.be.revertedWith("no claimable ETH");
+    });
+
     it("Should claim after snapshot and deposit", async function () {
       await addr0.sendTransaction({ to: erc7641Address, value: ethers.parseEther("1000") });
       await network.provider.send("hardhat_mine", [snapshotInterval]);
