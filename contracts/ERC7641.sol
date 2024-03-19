@@ -102,11 +102,11 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
      * @dev A function to calculate claim pool from most recent three snapshots
      * @param currentSnapshotId The current snapshot id
      */
-    function _claimPool(uint256 currentSnapshotId) public view returns (uint256) {
-        if (currentSnapshotId > 2) return _claimableAtSnapshot[currentSnapshotId] + _claimableAtSnapshot[currentSnapshotId - 1] + _claimableAtSnapshot[currentSnapshotId - 2] - _claimedAtSnapshot[currentSnapshotId] - _claimedAtSnapshot[currentSnapshotId - 1] - _claimedAtSnapshot[currentSnapshotId - 2];
-        if (currentSnapshotId == 2) return _claimableAtSnapshot[2] + _claimableAtSnapshot[1] - _claimedAtSnapshot[2] - _claimedAtSnapshot[1];
-        if (currentSnapshotId == 1) return _claimableAtSnapshot[1] - _claimedAtSnapshot[1];
-        return 0;
+    function _claimPool(uint256 currentSnapshotId) public view returns (uint256 claimable) {
+        claimable = _claimableAtSnapshot[currentSnapshotId] - _claimedAtSnapshot[currentSnapshotId];
+        if (currentSnapshotId > 1) claimable += _claimableAtSnapshot[currentSnapshotId - 1] - _claimedAtSnapshot[currentSnapshotId - 1];
+        if (currentSnapshotId > 2) claimable += _claimableAtSnapshot[currentSnapshotId - 2] - _claimedAtSnapshot[currentSnapshotId - 2];
+        return claimable;
     }
     
     /**
