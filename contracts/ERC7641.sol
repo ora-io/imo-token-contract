@@ -130,16 +130,25 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
     }
 
     /**
+     * @dev An internal function to calculate the amount of ETH redeemable in both the newRevenue and burnPool by a token holder upon burn
+     * @param amount The amount of token to burn
+     * @return The amount of revenue ETH redeemable
+     */
+    function _redeemableOnBurn(uint256 amount) internal view returns (uint256, uint256) {
+        uint256 totalSupply = totalSupply();
+        uint256 currentSnapshotId = _getCurrentSnapshotId();
+        uint256 newRevenue = address(this).balance + _burned - _burnPool - _claimPool(currentSnapshotId);
+        uint256 burnableFromNewRevenue = amount * ((newRevenue * (100 - percentClaimable)) / 100 - _burned) / totalSupply;
+        uint256 burnableFromPool = amount * _burnPool / totalSupply;
+        return (burnableFromNewRevenue, burnableFromPool);
+    }
+        /**
      * @dev A function to calculate the amount of ETH redeemable by a token holder upon burn
      * @param amount The amount of token to burn
      * @return The amount of revenue ETH redeemable
      */
     function redeemableOnBurn(uint256 amount) public view returns (uint256) {
-        uint256 totalSupply = totalSupply();
-        uint256 currentSnapshotId = _getCurrentSnapshotId();
-        uint256 newRevenue = address(this).balance + _burned - _burnPool - _claimPool(currentSnapshotId);
-        uint256 burnableFromNewRevenue = amount * (newRevenue * (100 - percentClaimable) - _burned * 100) / 100 / totalSupply;
-        uint256 burnableFromPool = amount * _burnPool / totalSupply;
+        (uint256 burnableFromNewRevenue, uint256 burnableFromPool) = _redeemableOnBurn(amount);
         return burnableFromNewRevenue + burnableFromPool;
     }
 
@@ -148,11 +157,7 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
      * @param amount The amount of token to burn
      */
     function burn(uint256 amount) public {
-        uint256 totalSupply = totalSupply();
-        uint256 currentSnapshotId = _getCurrentSnapshotId();
-        uint256 newRevenue = address(this).balance + _burned - _burnPool - _claimPool(currentSnapshotId);
-        uint256 burnableFromNewRevenue = amount * ((newRevenue * (100 - percentClaimable))  / 100  - _burned) / totalSupply;
-        uint256 burnableFromPool = amount * _burnPool / totalSupply;
+        (uint256 burnableFromNewRevenue, uint256 burnableFromPool) = _redeemableOnBurn(amount);
         _burnPool -= burnableFromPool;
         _burned += burnableFromNewRevenue;
         _burn(msg.sender, amount);
