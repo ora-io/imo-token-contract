@@ -150,7 +150,8 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
         uint256 redeemableFromPool = amount * _redeemPool / totalSupply;
         return (redeemableFromNewRevenue, redeemableFromPool);
     }
-        /**
+    
+    /**
      * @dev A function to calculate the amount of ETH redeemable by a token holder upon burn
      * @param amount The amount of token to burn
      * @return redeemable The amount of revenue ETH redeemable
@@ -175,7 +176,9 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
 
     receive() external payable {}
 
-    //override _beforeTokenTransfer to update the snapshot
+    /**
+     * @dev override _beforeTokenTransfer to update the snapshot
+     */
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override(ERC20, ERC20Snapshot) {
         ERC20Snapshot._beforeTokenTransfer(from, to, amount);
     }

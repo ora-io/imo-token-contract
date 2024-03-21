@@ -11,7 +11,7 @@ interface IERC7641 is IERC20 {
      * @dev A function to calculate the amount of ETH claimable by a token holder at certain snapshot.
      * @param account The address of the token holder
      * @param snapshotId The snapshot id
-     * @return The amount of revenue token claimable
+     * @return claimable The amount of revenue ETH claimable
      */
     function claimableRevenue(address account, uint256 snapshotId) external view returns (uint256);
 
@@ -23,7 +23,7 @@ interface IERC7641 is IERC20 {
 
     /**
      * @dev A function to snapshot the token balance and the claimable revenue token balance
-     * @return The snapshot id
+     * @return snapshotId The snapshot id
      * @notice Should have `require` to avoid ddos attack
      */
     function snapshot() external returns (uint256);
@@ -31,7 +31,7 @@ interface IERC7641 is IERC20 {
     /**
      * @dev A function to calculate the amount of ETH redeemable by a token holder upon burn
      * @param amount The amount of token to burn
-     * @return The amount of revenue ETH redeemable
+     * @return redeemable The amount of revenue ETH redeemable
      */
     function redeemableOnBurn(uint256 amount) external view returns (uint256);
 
