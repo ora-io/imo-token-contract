@@ -7,6 +7,11 @@ import "./IERC7641.sol";
 
 contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
     /**
+     * @dev snapshot number reserved for claimable
+     */
+    uint256 constant public SNAPSHOT_CLAIMABLE_NUMBER = 2;
+
+    /**
      * @dev last snapshotted block
      */
     uint256 public lastSnapshotBlock;
@@ -68,7 +73,7 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
      */
     function claimableRevenue(address account, uint256 snapshotId) public view returns (uint256) {
         uint256 currentSnapshotId = _getCurrentSnapshotId();
-        require(currentSnapshotId - snapshotId < 3, "snapshot unclaimable");
+        require(currentSnapshotId - snapshotId < SNAPSHOT_CLAIMABLE_NUMBER, "snapshot unclaimable");
         uint256 balance = balanceOfAt(account, snapshotId);
         uint256 totalSupply = totalSupplyAt(snapshotId);
         uint256 ethClaimable = _claimableAtSnapshot[snapshotId];
@@ -101,13 +106,12 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
     }
 
     /**
-     * @dev A function to calculate claim pool from most recent three snapshots
+     * @dev A function to calculate claim pool from most recent two snapshots
      * @param currentSnapshotId The current snapshot id
      */
     function _claimPool(uint256 currentSnapshotId) private view returns (uint256 claimable) {
         claimable = _claimableAtSnapshot[currentSnapshotId] - _claimedAtSnapshot[currentSnapshotId];
         if (currentSnapshotId > 1) claimable += _claimableAtSnapshot[currentSnapshotId - 1] - _claimedAtSnapshot[currentSnapshotId - 1];
-        if (currentSnapshotId > 2) claimable += _claimableAtSnapshot[currentSnapshotId - 2] - _claimedAtSnapshot[currentSnapshotId - 2];
         return claimable;
     }
     
@@ -124,7 +128,7 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
         uint256 newRevenue = address(this).balance + _burned - _burnPool - _claimPool(snapshotId-1);
 
         uint256 claimableETH = newRevenue * percentClaimable / 100;
-        _claimableAtSnapshot[snapshotId] = snapshotId < 3 ? claimableETH : claimableETH + _claimableAtSnapshot[snapshotId-3] - _claimedAtSnapshot[snapshotId-3];
+        _claimableAtSnapshot[snapshotId] = snapshotId < SNAPSHOT_CLAIMABLE_NUMBER ? claimableETH : claimableETH + _claimableAtSnapshot[snapshotId-SNAPSHOT_CLAIMABLE_NUMBER] - _claimedAtSnapshot[snapshotId-SNAPSHOT_CLAIMABLE_NUMBER];
         _burnPool += newRevenue - claimableETH - _burned;
         _burned = 0;
 
