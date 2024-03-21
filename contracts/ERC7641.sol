@@ -72,7 +72,8 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
         uint256 balance = balanceOfAt(account, snapshotId);
         uint256 totalSupply = totalSupplyAt(snapshotId);
         uint256 ethClaimable = _claimableAtSnapshot[snapshotId];
-        return _hasClaimedAtSnapshot[snapshotId][account] ? 0 : balance * ethClaimable / totalSupply;
+        require(_hasClaimedAtSnapshot[snapshotId][account] == false, "already claimed for this snapshot");
+        return balance * ethClaimable / totalSupply;
     }
 
     /**
@@ -103,7 +104,7 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
      * @dev A function to calculate claim pool from most recent three snapshots
      * @param currentSnapshotId The current snapshot id
      */
-    function _claimPool(uint256 currentSnapshotId) public view returns (uint256 claimable) {
+    function _claimPool(uint256 currentSnapshotId) private view returns (uint256 claimable) {
         claimable = _claimableAtSnapshot[currentSnapshotId] - _claimedAtSnapshot[currentSnapshotId];
         if (currentSnapshotId > 1) claimable += _claimableAtSnapshot[currentSnapshotId - 1] - _claimedAtSnapshot[currentSnapshotId - 1];
         if (currentSnapshotId > 2) claimable += _claimableAtSnapshot[currentSnapshotId - 2] - _claimedAtSnapshot[currentSnapshotId - 2];
@@ -135,7 +136,7 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
      * @param amount The amount of token to burn
      * @return The amount of revenue ETH redeemable
      */
-    function _redeemableOnBurn(uint256 amount) internal view returns (uint256, uint256) {
+    function _redeemableOnBurn(uint256 amount) private view returns (uint256, uint256) {
         uint256 totalSupply = totalSupply();
         uint256 currentSnapshotId = _getCurrentSnapshotId();
         uint256 newRevenue = address(this).balance + _burned - _burnPool - _claimPool(currentSnapshotId);
