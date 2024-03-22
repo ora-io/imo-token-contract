@@ -129,6 +129,15 @@ describe("ERC7641", function () {
       expect(balanceAfter-balanceBefore).to.greaterThan(ethers.parseEther("1000")*BigInt(percentClaimable)/BigInt(100)-gas);
     });
 
+    it("Should not re-claim on the same snapshot", async function () {
+      await addr0.sendTransaction({ to: erc7641Address, value: ethers.parseEther("1000") });
+      await network.provider.send("hardhat_mine", [snapshotInterval]);
+      await erc7641.snapshot();
+      expect(await erc7641.claimableRevenue(addr0, 1)).to.equal(ethers.parseEther("1000")*BigInt(percentClaimable)/BigInt(100));
+      await erc7641.claim(1);
+      await expect(erc7641.claim(1)).to.be.revertedWith("already claimed");
+    });
+
     it("Should claim after snapshot and deposit", async function () {
       await addr0.sendTransaction({ to: erc7641Address, value: ethers.parseEther("1000") });
       await network.provider.send("hardhat_mine", [snapshotInterval]);
@@ -173,7 +182,7 @@ describe("ERC7641", function () {
       expect(balanceAfter-balanceBefore).to.greaterThan(ethers.parseEther("3000")*BigInt(percentClaimable)/BigInt(100)-gas);
     });
 
-    it("Should not claim if not most recent three snapshots", async function () {
+    it("Should not claim if not most recent two snapshots", async function () {
       await addr0.sendTransaction({ to: erc7641Address, value: ethers.parseEther("100") });
       await network.provider.send("hardhat_mine", [snapshotInterval]);
       await erc7641.snapshot();
@@ -187,10 +196,11 @@ describe("ERC7641", function () {
       await network.provider.send("hardhat_mine", [snapshotInterval]);
       await erc7641.snapshot();
       await expect(erc7641.claimableRevenue(addr0, 1)).to.be.revertedWith("snapshot unclaimable");
-      expect(await erc7641.claimableRevenue(addr0, 2)).to.equal(ethers.parseEther("200")*BigInt(percentClaimable)/BigInt(100));
-      expect(await erc7641.claimableRevenue(addr0, 3)).to.equal(ethers.parseEther("300")*BigInt(percentClaimable)/BigInt(100));
+      await expect(erc7641.claimableRevenue(addr0, 2)).to.be.revertedWith("snapshot unclaimable");
       // should add 100 from snapshot 1
-      expect(await erc7641.claimableRevenue(addr0, 4)).to.equal(ethers.parseEther("500")*BigInt(percentClaimable)/BigInt(100));
+      expect(await erc7641.claimableRevenue(addr0, 3)).to.equal(ethers.parseEther("400")*BigInt(percentClaimable)/BigInt(100));
+      // should add 200 from snapshot 2
+      expect(await erc7641.claimableRevenue(addr0, 4)).to.equal(ethers.parseEther("600")*BigInt(percentClaimable)/BigInt(100));
     });
   });
 
