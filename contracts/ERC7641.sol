@@ -58,7 +58,7 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
      * @param supply The total supply of the token
      */
     constructor(string memory name, string memory symbol, uint256 supply, uint256 _percentClaimable, uint256 _snapshotInterval) ERC20(name, symbol) ERC20Permit(name) {
-        require(_percentClaimable <= 100, "percentage claimable should be less than 100");
+        require(_percentClaimable <= 100, "percentage claimable should <= 100");
         lastSnapshotBlock = block.number;
         percentClaimable = _percentClaimable;
         snapshotInterval = _snapshotInterval;
@@ -72,12 +72,12 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
      * @return claimable The amount of revenue ETH claimable
      */
     function claimableRevenue(address account, uint256 snapshotId) public view returns (uint256) {
+        require(_hasClaimedAtSnapshot[snapshotId][account] == false, "already claimed");
         uint256 currentSnapshotId = _getCurrentSnapshotId();
         require(currentSnapshotId - snapshotId < SNAPSHOT_CLAIMABLE_NUMBER, "snapshot unclaimable");
         uint256 balance = balanceOfAt(account, snapshotId);
         uint256 totalSupply = totalSupplyAt(snapshotId);
         uint256 ethClaimable = _claimableAtSnapshot[snapshotId];
-        require(_hasClaimedAtSnapshot[snapshotId][account] == false, "already claimed for this snapshot");
         return balance * ethClaimable / totalSupply;
     }
 
@@ -100,7 +100,8 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
      * @param snapshotIds The list of snapshot ids
      */
     function claimBatch(uint256[] memory snapshotIds) external {
-        for (uint256 i = 0; i < snapshotIds.length; i++) {
+        uint256 len = snapshotIds.length;
+        for (uint256 i; i < len; ++i) {
             claim(snapshotIds[i]);
         }
     }
@@ -112,7 +113,7 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
      */
     function _claimPool(uint256 currentSnapshotId) private view returns (uint256 claimable) {
         claimable = _claimableAtSnapshot[currentSnapshotId] - _claimedAtSnapshot[currentSnapshotId];
-        if (currentSnapshotId > 1) claimable += _claimableAtSnapshot[currentSnapshotId - 1] - _claimedAtSnapshot[currentSnapshotId - 1];
+        if (currentSnapshotId >= 2) claimable += _claimableAtSnapshot[currentSnapshotId - 1] - _claimedAtSnapshot[currentSnapshotId - 1];
         return claimable;
     }
     

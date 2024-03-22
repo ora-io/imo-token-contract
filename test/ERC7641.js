@@ -135,7 +135,7 @@ describe("ERC7641", function () {
       await erc7641.snapshot();
       expect(await erc7641.claimableRevenue(addr0, 1)).to.equal(ethers.parseEther("1000")*BigInt(percentClaimable)/BigInt(100));
       await erc7641.claim(1);
-      await expect(erc7641.claim(1)).to.be.revertedWith("already claimed for this snapshot");
+      await expect(erc7641.claim(1)).to.be.revertedWith("already claimed");
     });
 
     it("Should claim after snapshot and deposit", async function () {
