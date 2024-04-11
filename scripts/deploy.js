@@ -7,7 +7,9 @@
 const hre = require("hardhat");
 
 async function main() {
-    const token = await hre.ethers.deployContract("ERC7641", ["Subnet 6 RevShare Token", "SN6", 1000000000, 80, 648000]);
+    const [signer] = await hre.ethers.getSigners();
+    const totalSupply = ethers.parseEther("1000000000");
+    const token = await hre.ethers.deployContract("ERC7641", ["OpenLM RevShare Token", "OLM", totalSupply, 80, 648000], signer);
 
     await token.waitForDeployment();
 
@@ -19,6 +21,7 @@ async function main() {
         Decimals: ${await token.decimals()}
         Percent Claimable: ${await token.percentClaimable()}
         Snapshot Interval: ${await token.snapshotInterval()}
+        Balance(${await signer.getAddress()}): ${await token.balanceOf(signer.getAddress())}
         `
     );
 }

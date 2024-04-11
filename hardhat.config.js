@@ -21,6 +21,10 @@ module.exports = {
       url: API_URL,
       accounts: [PRIVATE_KEY],
     },
+    local: {
+      url: "http://127.0.0.1:8545",
+      accounts: [PRIVATE_KEY],
+    },
   },
   gasReporter: {
     enabled: (process.env.REPORT_GAS) ? true : false,
