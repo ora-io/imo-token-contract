@@ -17,6 +17,10 @@ module.exports = {
   },
   networks: {
     hardhat: {},
+    mainnet: {
+      url: API_URL,
+      accounts: [PRIVATE_KEY],
+    },
     sepolia: {
       url: API_URL,
       accounts: [PRIVATE_KEY],

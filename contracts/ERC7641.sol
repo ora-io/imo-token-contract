@@ -56,6 +56,8 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
      * @param name The name of the token
      * @param symbol The symbol of the token
      * @param supply The total supply of the token
+     * @param _percentClaimable The percentage of claimable revenue (revenue => claimable on snapshot + redeemable on burn)
+     * @param _snapshotInterval The minimum interval between 2 snapshots
      */
     constructor(string memory name, string memory symbol, uint256 supply, uint256 _percentClaimable, uint256 _snapshotInterval) ERC20(name, symbol) ERC20Permit(name) {
         require(_percentClaimable <= 100, "percentage claimable should <= 100");
