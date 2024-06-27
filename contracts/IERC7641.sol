@@ -30,14 +30,14 @@ interface IERC7641 is IERC20 {
 
     /**
      * @dev A function to calculate the amount of ETH redeemable by a token holder upon burn
-     * @param amount The amount of token to burn
+     * @param amount The amount of tokens to burn
      * @return redeemable The amount of revenue ETH redeemable
      */
     function redeemableOnBurn(uint256 amount) external view returns (uint256);
 
     /**
      * @dev A function to burn tokens and redeem the corresponding amount of revenue token
-     * @param amount The amount of token to burn
+     * @param amount The amount of tokens to burn
      */
     function burn(uint256 amount) external;
 }
