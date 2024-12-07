@@ -12,9 +12,9 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
     uint256 constant public SNAPSHOT_CLAIMABLE_NUMBER = 2;
 
     /**
-     * @dev last snapshotted block
+     * @dev last snapshotted timestamp
      */
-    uint256 public lastSnapshotBlock;
+    uint256 public lastSnapshotTimestamp;
 
     /**
      * @dev percentage claimable
@@ -61,7 +61,7 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
      */
     constructor(string memory name, string memory symbol, uint256 supply, uint256 _percentClaimable, uint256 _snapshotInterval, address _initHolder) ERC20(name, symbol) ERC20Permit(name) {
         require(_percentClaimable <= 100, "percentage claimable should <= 100");
-        lastSnapshotBlock = block.number;
+        lastSnapshotTimestamp = block.timestamp;
         percentClaimable = _percentClaimable;
         snapshotInterval = _snapshotInterval;
         _mint(_initHolder, supply);
@@ -122,12 +122,12 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
     /**
      * @dev A snapshot function that also records the deposited ETH amount at the time of the snapshot.
      * @return snapshotId The snapshot id
-     * @notice 648000 blocks is approximately 3 months
+     * @notice 7776000 seconds is approximately 3 months
      */
     function snapshot() external returns (uint256) {
-        require(block.number - lastSnapshotBlock > snapshotInterval, "snapshot interval is too short");
+        require(block.timestamp - lastSnapshotTimestamp > snapshotInterval, "snapshot interval is too short");
         uint256 snapshotId = _snapshot();
-        lastSnapshotBlock = block.number;
+        lastSnapshotTimestamp = block.timestamp;
         
         uint256 newRevenue = address(this).balance + _redeemed - _redeemPool - _claimPool(snapshotId-1);
 
