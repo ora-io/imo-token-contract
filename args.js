@@ -1,0 +1,8 @@
+module.exports = [
+"Buddhism Religious Model",
+"BRM",
+1000000000000000000000000000n,
+80,
+64800,
+"0x0098E03A0f2a2957171a2eE7D67F7fcF1A373130"
+]

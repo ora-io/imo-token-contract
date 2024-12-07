@@ -9,7 +9,8 @@ const hre = require("hardhat");
 async function main() {
     const [signer] = await hre.ethers.getSigners();
     const totalSupply = ethers.parseEther("1000000000");
-    const token = await hre.ethers.deployContract("ERC7641", ["OpenLM RevShare Token", "OLM", totalSupply, 80, 648000], signer);
+    const token = await hre.ethers.deployContract("ERC7641", ["Buddhism Religious Model", "BRM", totalSupply, 80, 648000 * 6, signer.address], signer);
+
 
     await token.waitForDeployment();
 

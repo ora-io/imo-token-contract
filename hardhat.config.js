@@ -21,6 +21,10 @@ module.exports = {
       url: API_URL,
       accounts: [PRIVATE_KEY],
     },
+    base: {
+      url: API_URL,
+      accounts: [PRIVATE_KEY]
+    },
     sepolia: {
       url: API_URL,
       accounts: [PRIVATE_KEY],
@@ -29,6 +33,11 @@ module.exports = {
       url: "http://127.0.0.1:8545",
       accounts: [PRIVATE_KEY],
     },
+  },
+  etherscan: {
+    apiKey: {
+        base: "JS31YSNXIGA33YKDC45Z6TKU6JSVXSXDQD",
+    }
   },
   gasReporter: {
     enabled: (process.env.REPORT_GAS) ? true : false,
