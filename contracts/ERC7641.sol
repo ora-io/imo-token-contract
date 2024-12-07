@@ -59,12 +59,12 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
      * @param _percentClaimable The percentage of claimable revenue (revenue => claimable on snapshot + redeemable on burn)
      * @param _snapshotInterval The minimum interval between 2 snapshots
      */
-    constructor(string memory name, string memory symbol, uint256 supply, uint256 _percentClaimable, uint256 _snapshotInterval) ERC20(name, symbol) ERC20Permit(name) {
+    constructor(string memory name, string memory symbol, uint256 supply, uint256 _percentClaimable, uint256 _snapshotInterval, address _initHolder) ERC20(name, symbol) ERC20Permit(name) {
         require(_percentClaimable <= 100, "percentage claimable should <= 100");
         lastSnapshotBlock = block.number;
         percentClaimable = _percentClaimable;
         snapshotInterval = _snapshotInterval;
-        _mint(msg.sender, supply);
+        _mint(_initHolder, supply);
     }
 
     /**
