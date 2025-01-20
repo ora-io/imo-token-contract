@@ -109,7 +109,7 @@ contract ERC7641 is ERC20Permit, ERC20Snapshot, IERC7641 {
     }
 
     /**
-     * @dev A function to calculate claim pool from most recent two snapshots
+     * @dev A function to calculate the claim pool from the most recent two snapshots
      * @param currentSnapshotId The current snapshot id
      * @notice modify when SNAPSHOT_CLAIMABLE_NUMBER changes
      */
