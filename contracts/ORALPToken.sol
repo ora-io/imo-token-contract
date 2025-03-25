@@ -163,8 +163,7 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
         require(block.timestamp - lastSnapshotTimestamp > snapshotInterval, "snapshot interval is too short");
         uint256 snapshotId = _snapshot();
         lastSnapshotTimestamp = block.timestamp;        
-        uint256 newRevenue = rewardAmount - _redeemPool - _claimPool(snapshotId-1);
-        _claimableAtSnapshot[snapshotId] = newRevenue;
+        _claimableAtSnapshot[snapshotId] = rewardAmount;
         return snapshotId;
     }
 
