@@ -7,7 +7,11 @@ interface IORAAxonManager {
         string memory symbol,
         uint256 supply,
         uint256 snapshotInterval,
-        address initHolder,
-        address oraTokenAddress
+        address initHolder
     ) external returns (address);
+
+    function getTotalClaimableORA(
+        address snapshotLPToken,
+        address account
+    ) external view returns (uint256);
 } 

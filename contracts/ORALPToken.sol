@@ -9,13 +9,7 @@ import "./IORALPToken.sol";
 
 contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
     
-    address public oraTokenAddress;
-
     address public tokenEmitterAddress;
-    /**
-     * @dev snapshot number reserved for claimable
-     */
-    uint256 constant public SNAPSHOT_CLAIMABLE_NUMBER = 2;
 
     /**
      * @dev last snapshotted timestamp
@@ -28,17 +22,17 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
     uint256 immutable public snapshotInterval;
 
     /**
-     * @dev mapping from snapshot id to the amount of ETH claimable at the snapshot.
+     * @dev mapping from snapshot id to the amount of ORA claimable at the snapshot.
      */
     mapping (uint256 => uint256) private _claimableAtSnapshot;
 
     /**
-     * @dev mapping from snapshot id to amount of ETH claimed at the snapshot.
+     * @dev mapping from snapshot id to amount of ORA claimed at the snapshot.
      */
     mapping (uint256 => uint256) private _claimedAtSnapshot;
 
     /**
-     * @dev mapping from snapshot id to a boolean indicating whether the address has claimed the revenue.
+     * @dev mapping from snapshot id to a boolean indicating whORAer the address has claimed the revenue.
      */
     mapping (uint256 => mapping (address => bool)) private _hasClaimedAtSnapshot;
 
@@ -65,24 +59,45 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
      * @param initial_supply The initial supply of the token
      * @param _snapshotInterval The minimum interval between 2 snapshots
      */
-    constructor(string memory name, string memory symbol, uint256 initial_supply, uint256 _snapshotInterval, address _initHolder, address _oraTokenAddress, address _tokenEmitterAddress) ERC20(name, symbol) ERC20Permit(name) {
-        lastSnapshotTimestamp = block.timestamp;
+    constructor(string memory name, string memory symbol, uint256 initial_supply, uint256 _snapshotInterval, address _initHolder, address _tokenEmitterAddress) ERC20(name, symbol) ERC20Permit(name) {
         snapshotInterval = _snapshotInterval;
-        oraTokenAddress = _oraTokenAddress;
         tokenEmitterAddress = _tokenEmitterAddress;
         _mint(_initHolder, initial_supply);
     }
 
     /**
-     * @dev A function to calculate the amount of ETH claimable by a token holder at certain snapshot.
+     * @dev A function to calculate the amount of ORA claimable by a token holder at certain snapshot.
+     * @param account The address of the token holder
+     * @return claimable The amount of revenue ORA claimable
+     */
+    function claimableRevenue(address account) public view returns (uint256) {
+        uint256 currentSnapshotId = _getCurrentSnapshotId();
+        uint256 _userLastClaimedSnapshotId = userLastClaimedSnapshotId[account];
+        if(_userLastClaimedSnapshotId == 0) {
+            return 0;
+        }
+
+        uint256 totalClaimableORA = 0;
+
+        for(uint256 i = _userLastClaimedSnapshotId + 1; i <= currentSnapshotId; i++) {
+            uint256 balance = balanceOfAt(account, i);
+            uint256 totalSupply = totalSupplyAt(i);
+            uint256 oraClaimable = _claimableAtSnapshot[i];
+            totalClaimableORA += balance * oraClaimable / totalSupply;
+        }
+
+        return totalClaimableORA;
+    }
+
+    /**
+     * @dev A function to calculate the amount of ORA claimable by a token holder at certain snapshot.
      * @param account The address of the token holder
      * @param snapshotId The snapshot id
-     * @return claimable The amount of revenue ETH claimable
+     * @return claimable The amount of revenue ORA claimable
      */
     function claimableRevenue(address account, uint256 snapshotId) public view returns (uint256) {
         require(_hasClaimedAtSnapshot[snapshotId][account] == false, "already claimed");
-        uint256 currentSnapshotId = _getCurrentSnapshotId();
-        require(currentSnapshotId - snapshotId < SNAPSHOT_CLAIMABLE_NUMBER, "snapshot unclaimable");
+        require(snapshotId <= _getCurrentSnapshotId(), "Given snapshotId is not yet available");
         uint256 balance = balanceOfAt(account, snapshotId);
         uint256 totalSupply = totalSupplyAt(snapshotId);
         uint256 oraClaimable = _claimableAtSnapshot[snapshotId];
@@ -103,11 +118,8 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
         }
 
         uint256 totalClaimableORA = 0;
-        if(userLastClaimedSnapshotId[user] == 0) {
-            userLastClaimedSnapshotId[user] = 1;
-        }
 
-        for(uint256 i = userLastClaimedSnapshotId[user] + 1; i < snapshotId; i++) {
+        for(uint256 i = userLastClaimedSnapshotId[user] + 1; i <= snapshotId; i++) {
             uint256 claimableORA = claimableRevenue(user, i);
             if(claimableORA == 0) {
                 continue;
@@ -120,7 +132,6 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
 
         userLastClaimedSnapshotId[user] = snapshotId;
         require(totalClaimableORA > 0, "no claimable ORA");
-        IERC20(oraTokenAddress).transfer(tokenEmitterAddress, totalClaimableORA);
 
         return totalClaimableORA;
     }
@@ -144,16 +155,16 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
     }
     
     /**
-     * @dev A snapshot function that also records the deposited ETH amount at the time of the snapshot.
+     * @dev A snapshot function that also records the deposited ORA amount at the time of the snapshot.
      * @return snapshotId The snapshot id
      * @notice 7776000 seconds is approximately 3 months
      */
-    function snapshot() external returns (uint256) {
+    function snapshot(uint256 rewardAmount) external onlyTokenEmitter returns (uint256) {
         require(block.timestamp - lastSnapshotTimestamp > snapshotInterval, "snapshot interval is too short");
         uint256 snapshotId = _snapshot();
         lastSnapshotTimestamp = block.timestamp;        
-        uint256 newRevenue = IERC20(oraTokenAddress).balanceOf(address(this)) - _redeemPool - _claimPool(snapshotId-1);
-        _claimableAtSnapshot[snapshotId] = snapshotId < SNAPSHOT_CLAIMABLE_NUMBER ? newRevenue : newRevenue + _claimableAtSnapshot[snapshotId-SNAPSHOT_CLAIMABLE_NUMBER] - _claimedAtSnapshot[snapshotId-SNAPSHOT_CLAIMABLE_NUMBER];
+        uint256 newRevenue = rewardAmount - _redeemPool - _claimPool(snapshotId-1);
+        _claimableAtSnapshot[snapshotId] = newRevenue;
         return snapshotId;
     }
 
@@ -169,15 +180,18 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
     }
     
     /**
-     * @dev A function to calculate the amount of ETH redeemable by a token holder upon burn
+     * @dev A function to calculate the amount of ORA redeemable by a token holder upon burn
      * @param amount The amount of token to burn
-     * @return redeemable The amount of revenue ETH redeemable
+     * @return redeemable The amount of revenue ORA redeemable
      */
     function redeemableOnBurn(uint256 amount) external view returns (uint256) {
         return _redeemableOnBurn(amount);
     }
 
     function mint(address _to, uint256 _amount) external onlyTokenEmitter {
+        if(IERC20(address(this)).balanceOf(_to) == 0) {
+            userLastClaimedSnapshotId[_to] = _getCurrentSnapshotId();
+        }
         _mint(_to, _amount);
     }
 
@@ -189,7 +203,10 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
         uint256 redeemableFromPool = _redeemableOnBurn(amount);
         _redeemPool -= redeemableFromPool;
         _burn(from, amount);
-        IERC20(oraTokenAddress).transfer(from, redeemableFromPool);
+        
+        if(IERC20(address(this)).balanceOf(from) == 0) {
+            delete userLastClaimedSnapshotId[from];
+        }
     }
 
     receive() external payable {}
@@ -200,10 +217,6 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override(ERC20, ERC20Snapshot) {
         require(from == address(0) || to == address(0), "Token is non-transferable");
         ERC20Snapshot._beforeTokenTransfer(from, to, amount);
-    }
-
-    function setOraTokenAddress(address _oraTokenAddress) external onlyOwner {
-        oraTokenAddress = _oraTokenAddress;
     }
 
     function setTokenEmitterAddress(address _tokenEmitterAddress) external onlyOwner {

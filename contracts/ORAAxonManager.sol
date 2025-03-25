@@ -22,8 +22,7 @@ contract ORAAxonManager is IORAAxonManager, Ownable {
         string memory symbol,
         uint256 supply,
         uint256 snapshotInterval,
-        address initHolder,
-        address oraTokenAddress
+        address initHolder
     ) external onlyTokenEmitter returns (address) {
         ORALPToken newToken = new ORALPToken(
             name,
@@ -31,13 +30,17 @@ contract ORAAxonManager is IORAAxonManager, Ownable {
             supply,
             snapshotInterval,
             initHolder,
-            oraTokenAddress,
             tokenEmitter
         );
+        
         return address(newToken);
     }
 
     function setTokenEmitter(address _tokenEmitter) external onlyOwner {
         tokenEmitter = _tokenEmitter;
     }
-} 
+
+    function getTotalClaimableORA(address snapshotLPToken,address account) external view returns (uint256) {
+        return IORALPToken(snapshotLPToken).claimableRevenue(account);    
+    }
+}
