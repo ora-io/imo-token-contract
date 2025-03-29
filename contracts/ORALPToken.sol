@@ -65,10 +65,7 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
         uint256 totalClaimableORA = 0;
 
         for(uint256 i = _userLastClaimedSnapshotId + 1; i <= currentSnapshotId; i++) {
-            uint256 balance = balanceOfAt(account, i);
-            uint256 totalSupply = totalSupplyAt(i);
-            uint256 oraClaimable = _claimableAtSnapshot[i];
-            totalClaimableORA += balance * oraClaimable / totalSupply;
+            totalClaimableORA += _claimableRevenue(account, i);
         }
 
         return totalClaimableORA;
@@ -81,7 +78,11 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
      * @return claimable The amount of revenue ORA claimable
      */
     function claimableRevenue(address account, uint256 snapshotId) public view returns (uint256) {
-        require(_hasClaimedAtSnapshot[snapshotId][account] == false, "already claimed");
+        return _claimableRevenue(account, snapshotId);
+    }
+
+    function _claimableRevenue(address account, uint256 snapshotId) internal view returns (uint256) {
+        require(_hasClaimedAtSnapshot[snapshotId][account] == false, "Given snapshotId has already claimed");
         require(snapshotId <= _getCurrentSnapshotId(), "Given snapshotId is not yet available");
         uint256 balance = balanceOfAt(account, snapshotId);
         uint256 totalSupply = totalSupplyAt(snapshotId);
@@ -171,9 +172,6 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
     }
 
     function mint(address _to, uint256 _amount) external onlyTokenEmitter {
-        if(IERC20(address(this)).balanceOf(_to) == 0) {
-            userLastClaimedSnapshotId[_to] = _getCurrentSnapshotId();
-        }
         _mint(_to, _amount);
     }
 
@@ -184,11 +182,7 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
     function burn(address from, uint256 amount) external onlyTokenEmitter {
         uint256 redeemableFromPool = _redeemableOnBurn(amount);
         _redeemPool -= redeemableFromPool;
-        _burn(from, amount);
-        
-        if(IERC20(address(this)).balanceOf(from) == 0) {
-            delete userLastClaimedSnapshotId[from];
-        }
+        _burn(from, amount);        
     }
 
     receive() external payable {}
