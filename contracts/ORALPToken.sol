@@ -12,16 +12,6 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
     address public tokenEmitterAddress;
 
     /**
-     * @dev last snapshotted timestamp
-     */
-    uint256 public lastSnapshotTimestamp;
-
-    /**
-     * @dev snapshot interval
-     */
-    uint256 immutable public snapshotInterval;
-
-    /**
      * @dev mapping from snapshot id to the amount of ORA claimable at the snapshot.
      */
     mapping (uint256 => uint256) private _claimableAtSnapshot;
@@ -57,10 +47,8 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
      * @param name The name of the token
      * @param symbol The symbol of the token
      * @param initial_supply The initial supply of the token
-     * @param _snapshotInterval The minimum interval between 2 snapshots
      */
-    constructor(string memory name, string memory symbol, uint256 initial_supply, uint256 _snapshotInterval, address _initHolder, address _tokenEmitterAddress) ERC20(name, symbol) ERC20Permit(name) {
-        snapshotInterval = _snapshotInterval;
+    constructor(string memory name, string memory symbol, uint256 initial_supply, address _initHolder, address _tokenEmitterAddress) ERC20(name, symbol) ERC20Permit(name) {
         tokenEmitterAddress = _tokenEmitterAddress;
         _mint(_initHolder, initial_supply);
     }
@@ -160,9 +148,7 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
      * @notice 7776000 seconds is approximately 3 months
      */
     function snapshot(uint256 rewardAmount) external onlyTokenEmitter returns (uint256) {
-        require(block.timestamp - lastSnapshotTimestamp > snapshotInterval, "snapshot interval is too short");
         uint256 snapshotId = _snapshot();
-        lastSnapshotTimestamp = block.timestamp;        
         _claimableAtSnapshot[snapshotId] = rewardAmount;
         return snapshotId;
     }

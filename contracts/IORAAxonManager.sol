@@ -6,7 +6,6 @@ interface IORAAxonManager {
         string memory name,
         string memory symbol,
         uint256 supply,
-        uint256 snapshotInterval,
         address initHolder
     ) external returns (address);
 
@@ -14,4 +13,6 @@ interface IORAAxonManager {
         address snapshotLPToken,
         address account
     ) external view returns (uint256);
-} 
+
+    function setTokenEmitterAddress(address _tokenEmitterAddress) external;
+}

@@ -21,14 +21,12 @@ contract ORAAxonManager is IORAAxonManager, Ownable {
         string memory name,
         string memory symbol,
         uint256 supply,
-        uint256 snapshotInterval,
         address initHolder
     ) external onlyTokenEmitter returns (address) {
         ORALPToken newToken = new ORALPToken(
             name,
             symbol,
             supply,
-            snapshotInterval,
             initHolder,
             tokenEmitter
         );
@@ -36,7 +34,7 @@ contract ORAAxonManager is IORAAxonManager, Ownable {
         return address(newToken);
     }
 
-    function setTokenEmitter(address _tokenEmitter) external onlyOwner {
+    function setTokenEmitterAddress(address _tokenEmitter) external onlyOwner {
         tokenEmitter = _tokenEmitter;
     }
 
