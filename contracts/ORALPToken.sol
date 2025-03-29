@@ -61,9 +61,6 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
     function claimableRevenue(address account) public view returns (uint256) {
         uint256 currentSnapshotId = _getCurrentSnapshotId();
         uint256 _userLastClaimedSnapshotId = userLastClaimedSnapshotId[account];
-        if(_userLastClaimedSnapshotId == 0) {
-            return 0;
-        }
 
         uint256 totalClaimableORA = 0;
 
