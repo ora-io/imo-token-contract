@@ -77,7 +77,7 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
      * @param snapshotId The snapshot id
      * @return claimable The amount of revenue ORA claimable
      */
-    function claimableRevenue(address account, uint256 snapshotId) public view returns (uint256) {
+    function claimableRevenue(address account, uint256 snapshotId) external view returns (uint256) {
         return _claimableRevenue(account, snapshotId);
     }
 
@@ -94,7 +94,7 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
      * @dev A function for token holder to claim revenue token based on the token balance at certain snapshot.
      * @param snapshotId The snapshot id 
      */
-    function claim(address user, uint256 snapshotId) public returns (uint256) {
+    function claim(address user, uint256 snapshotId) public onlyTokenEmitter returns (uint256) {
         if(snapshotId <= userLastClaimedSnapshotId[user]) {
             revert("Given snapshotId already claimed");
         }
@@ -106,7 +106,7 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
         uint256 totalClaimableORA = 0;
 
         for(uint256 i = userLastClaimedSnapshotId[user] + 1; i <= snapshotId; i++) {
-            uint256 claimableORA = claimableRevenue(user, i);
+            uint256 claimableORA = _claimableRevenue(user, i);
             _hasClaimedAtSnapshot[i][user] = true;
             _claimedAtSnapshot[i] += claimableORA;
             totalClaimableORA += claimableORA;
@@ -189,9 +189,5 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override(ERC20, ERC20Snapshot) {
         require(from == address(0) || to == address(0), "Token is non-transferable");
         ERC20Snapshot._beforeTokenTransfer(from, to, amount);
-    }
-
-    function setTokenEmitterAddress(address _tokenEmitterAddress) external onlyOwner {
-        tokenEmitterAddress = _tokenEmitterAddress;
     }
 }
