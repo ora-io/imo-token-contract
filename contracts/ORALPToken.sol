@@ -32,11 +32,6 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
      */
     mapping (address => uint256) public userLastClaimedSnapshotId;
 
-    /**
-     * @dev burn pool
-     */
-    uint256 private _redeemPool;
-
     modifier onlyTokenEmitter() {
         require(msg.sender == tokenEmitterAddress, "Only token emitter can call this function");
         _;
@@ -121,7 +116,7 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
     /**
      * @dev A function to claim by a list of snapshot ids.
      */
-    function claim(address user) external returns (uint256) {
+    function claim(address user) external onlyTokenEmitter returns (uint256) {
         return claim(user, _getCurrentSnapshotId());
     }
 
@@ -146,26 +141,7 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
         _claimableAtSnapshot[snapshotId] = rewardAmount;
         return snapshotId;
     }
-
-    /**
-     * @dev An internal function to calculate the amount of ORA redeemable in burnPool by a token holder upon burn
-     * @param amount The amount of token to burn
-     * @return redeemableFromPool The amount of revenue ORA redeemable from the snapshoted redeem pool
-     */
-    function _redeemableOnBurn(uint256 amount) private view returns (uint256) {
-        uint256 totalSupply = totalSupply();
-        uint256 redeemableFromPool = amount * _redeemPool / totalSupply;
-        return redeemableFromPool;
-    }
     
-    /**
-     * @dev A function to calculate the amount of ORA redeemable by a token holder upon burn
-     * @param amount The amount of token to burn
-     * @return redeemable The amount of revenue ORA redeemable
-     */
-    function redeemableOnBurn(uint256 amount) external view returns (uint256) {
-        return _redeemableOnBurn(amount);
-    }
 
     function mint(address _to, uint256 _amount) external onlyTokenEmitter {
         _mint(_to, _amount);
@@ -176,8 +152,6 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
      * @param amount The amount of token to burn
      */
     function burn(address from, uint256 amount) external onlyTokenEmitter {
-        uint256 redeemableFromPool = _redeemableOnBurn(amount);
-        _redeemPool -= redeemableFromPool;
         _burn(from, amount);        
     }
 
