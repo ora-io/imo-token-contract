@@ -119,17 +119,6 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
     function claim(address user) external onlyTokenEmitter returns (uint256) {
         return claim(user, _getCurrentSnapshotId());
     }
-
-    /**
-     * @dev A function to calculate claim pool from most recent two snapshots
-     * @param currentSnapshotId The current snapshot id
-     * @notice modify when SNAPSHOT_CLAIMABLE_NUMBER changes
-     */
-    function _claimPool(uint256 currentSnapshotId) private view returns (uint256 claimable) {
-        claimable = _claimableAtSnapshot[currentSnapshotId] - _claimedAtSnapshot[currentSnapshotId];
-        if (currentSnapshotId >= 2) claimable += _claimableAtSnapshot[currentSnapshotId - 1] - _claimedAtSnapshot[currentSnapshotId - 1];
-        return claimable;
-    }
     
     /**
      * @dev A snapshot function that also records the deposited ORA amount at the time of the snapshot.
@@ -144,6 +133,10 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
     
 
     function mint(address _to, uint256 _amount) external onlyTokenEmitter {
+        if(balanceOf(_to) == 0 && userLastClaimedSnapshotId[_to] == 0) {
+            // update user last claimed snapshot id
+            userLastClaimedSnapshotId[_to] = _getCurrentSnapshotId();
+        }
         _mint(_to, _amount);
     }
 
@@ -152,7 +145,10 @@ contract ORALPToken is ERC20Permit, ERC20Snapshot, IORALPToken, Ownable {
      * @param amount The amount of token to burn
      */
     function burn(address from, uint256 amount) external onlyTokenEmitter {
-        _burn(from, amount);        
+        _burn(from, amount);
+        if(balanceOf(from) == 0 && userLastClaimedSnapshotId[from] == _getCurrentSnapshotId()) {
+            delete userLastClaimedSnapshotId[from];
+        }
     }
 
     receive() external payable {}
